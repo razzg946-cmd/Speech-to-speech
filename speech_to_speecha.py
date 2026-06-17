@@ -108,18 +108,17 @@ sample_rate=44100
 
 if audio_bytes:
 
+    st.audio(audio_bytes)
 
-st.audio(audio_bytes)
+    if st.button("▶ Convert & Translate"):
 
-if st.button("▶ Convert & Translate"):
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".wav"
+        ) as f:
 
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=".wav"
-    ) as f:
-
-        f.write(audio_bytes)
-        audio_path = f.name
+            f.write(audio_bytes)
+            audio_path = f.name
 
     recognizer = sr.Recognizer()
 
