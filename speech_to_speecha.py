@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_mic_recorder import mic_recorder
 from deep_translator import GoogleTranslator
 import speech_recognition as sr
 import edge_tts
@@ -7,9 +8,9 @@ from io import BytesIO
 
 st.set_page_config(page_title="Rvoice", page_icon="🎙️")
 
-st.title("🎙️ RVOICE - Voice to Voice")
+st.title("🎙️ RVOICE - Live Voice to Voice")
 
-# ---------------- LANGUAGE MAP (INDIA + GLOBAL) ----------------
+# ---------------- LANGUAGE ----------------
 lang_map = {
     "English": "en",
     "Hindi": "hi",
@@ -21,25 +22,23 @@ lang_map = {
     "Kannada": "kn",
     "Malayalam": "ml",
     "Punjabi": "pa",
-    "Urdu": "ur",
-    "French": "fr"
+    "Urdu": "ur"
 }
 
-# ---------------- LANGUAGE SELECT ----------------
 input_lang = st.selectbox("Input Language Select", list(lang_map.keys()))
 output_lang = st.selectbox("Output Language Select", list(lang_map.keys()))
 
-# ---------------- AUDIO UPLOAD ----------------
-audio_file = st.file_uploader("Voice Record (Upload Audio)", type=["wav"])
-
+# ---------------- MIC RECORD ----------------
+st.subheader("🎤 Speak Here (Click to Record)")
+audio = mic_recorder(start_prompt="🎙️ Start Recording", stop_prompt="⏹ Stop Recording")
 
 # ---------------- SPEECH TO TEXT ----------------
-def speech_to_text(audio):
+def speech_to_text(audio_bytes):
     r = sr.Recognizer()
-    with sr.AudioFile(audio) as source:
+    audio_file = sr.AudioFile(audio_bytes)
+    with audio_file as source:
         data = r.record(source)
     return r.recognize_google(data, language=lang_map[input_lang])
-
 
 # ---------------- TEXT TO VOICE ----------------
 async def text_to_voice(text):
@@ -53,16 +52,17 @@ async def text_to_voice(text):
     audio.seek(0)
     return audio
 
+# ---------------- PROCESS BUTTON ----------------
+if audio:
 
-# ---------------- PROCESS ----------------
-if audio_file is not None:
+    st.success("Audio captured!")
 
     if st.button("▶ Convert & Translate"):
 
         with st.spinner("Processing..."):
 
-            # Speech to Text
-            text = speech_to_text(audio_file)
+            # Convert voice → text
+            text = speech_to_text(audio["bytes"])
             st.subheader("Recognized Text")
             st.write(text)
 
@@ -75,10 +75,10 @@ if audio_file is not None:
             st.subheader("Translated Text")
             st.write(translated)
 
-            # Text to Voice
+            # Text → Voice
             audio_out = asyncio.run(text_to_voice(translated))
 
-        st.subheader("Output Voice")
+        st.subheader("🔊 Output Voice")
         st.audio(audio_out, format="audio/mp3")
 
         st.download_button(
@@ -87,9 +87,6 @@ if audio_file is not None:
             file_name="rvoice.mp3",
             mime="audio/mp3"
         )
-
-else:
-    st.info("⬆ Please upload voice first")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
