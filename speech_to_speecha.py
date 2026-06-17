@@ -110,8 +110,7 @@ if audio_bytes:
 
     st.audio(audio_bytes)
 
-    if st.button("▶ Convert & Translate"):
-
+    if st.button("▶ Convert"):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
             f.write(audio_bytes)
             audio_path = f.name
@@ -119,7 +118,6 @@ if audio_bytes:
         recognizer = sr.Recognizer()
 
         try:
-
             with sr.AudioFile(audio_path) as source:
                 audio_data = recognizer.record(source)
 
@@ -128,7 +126,7 @@ if audio_bytes:
                 language=languages[source_lang]
             )
 
-            st.success("✅ Recognized Text")
+            st.success("Recognized Text")
             st.write(text)
 
             translated = GoogleTranslator(
@@ -136,36 +134,31 @@ if audio_bytes:
                 target=languages[target_lang]
             ).translate(text)
 
-            st.success("🌍 Translated Text")
+            st.success("Translated Text")
             st.write(translated)
 
-            if voice_gender == "Female":
-                voice = female_voices.get(target_lang, "en-US-JennyNeural")
-            else:
-                voice = male_voices.get(target_lang, "en-US-GuyNeural")
+            voice = "en-US-JennyNeural" if voice_gender == "Female" else "en-US-GuyNeural"
 
-            async def generate_voice():
-                output_file = "translated.mp3"
-                communicate = edge_tts.Communicate(translated, voice)
-                await communicate.save(output_file)
-                return output_file
+            async def generate():
+                file = "translated.mp3"
+                tts = edge_tts.Communicate(translated, voice)
+                await tts.save(file)
+                return file
 
-            mp3_file = asyncio.run(generate_voice())
+            mp3 = asyncio.run(generate())
 
-            with open(mp3_file, "rb") as f:
-                audio_bytes_output = f.read()
-
-            st.audio(audio_bytes_output)
+            with open(mp3, "rb") as f:
+                st.audio(f.read())
 
             st.download_button(
                 "⬇ Download MP3",
-                audio_bytes_output,
-                file_name="rvoice_translation.mp3",
-                mime="audio/mpeg"
+                open(mp3, "rb"),
+                file_name="rvoice.mp3",
+                mime="audio/mp3"
             )
 
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(e)
 
         finally:
             if os.path.exists(audio_path):
