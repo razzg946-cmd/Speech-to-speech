@@ -23,6 +23,9 @@ output_lang = st.selectbox("Output Language Select", list(lang_map.keys()))
 # ---------------- AUDIO ----------------
 audio_file = st.file_uploader("Voice Record (Upload Audio)", type=["wav"])
 
+# ---------------- BUTTON ----------------
+if st.button("▶ Convert & Translate"):
+
 # ---------------- SPEECH TO TEXT ----------------
 def speech_to_text(audio):
     r = sr.Recognizer()
