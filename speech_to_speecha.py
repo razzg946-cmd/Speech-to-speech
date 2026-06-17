@@ -108,97 +108,68 @@ sample_rate=44100
 
 if audio_bytes:
 
-st.audio(audio_bytes)
-if st.button("▶ Convert & Translate"):
+    st.audio(audio_bytes)
 
-st.info("Voice recorded successfully. Click the button below.")
+    if st.button("▶ Convert & Translate"):
 
-if st.button("▶ Convert & Translate"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+            f.write(audio_bytes)
+            audio_path = f.name
 
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=".wav"
-    ) as f:
+        recognizer = sr.Recognizer()
 
-        f.write(audio_bytes)
-        audio_path = f.name
+        try:
 
-    recognizer = sr.Recognizer()
+            with sr.AudioFile(audio_path) as source:
+                audio_data = recognizer.record(source)
 
-    try:
-
-        # Speech To Text
-        with sr.AudioFile(audio_path) as source:
-            audio_data = recognizer.record(source)
-
-        text = recognizer.recognize_google(
-            audio_data,
-            language=languages[source_lang]
-        )
-
-        st.success("✅ Recognized Text")
-        st.write(text)
-
-        # Translation
-        translated = GoogleTranslator(
-            source="auto",
-            target=languages[target_lang]
-        ).translate(text)
-
-        st.success("🌍 Translated Text")
-        st.write(translated)
-
-        # Voice Selection
-        if voice_gender == "Female":
-            voice = female_voices.get(
-                target_lang,
-                "en-US-JennyNeural"
-            )
-        else:
-            voice = male_voices.get(
-                target_lang,
-                "en-US-GuyNeural"
+            text = recognizer.recognize_google(
+                audio_data,
+                language=languages[source_lang]
             )
 
-        # Text To Speech
-        async def generate_voice():
+            st.success("✅ Recognized Text")
+            st.write(text)
 
-            output_file = "translated.mp3"
+            translated = GoogleTranslator(
+                source="auto",
+                target=languages[target_lang]
+            ).translate(text)
 
-            communicate = edge_tts.Communicate(
-                translated,
-                voice
+            st.success("🌍 Translated Text")
+            st.write(translated)
+
+            if voice_gender == "Female":
+                voice = female_voices.get(target_lang, "en-US-JennyNeural")
+            else:
+                voice = male_voices.get(target_lang, "en-US-GuyNeural")
+
+            async def generate_voice():
+                output_file = "translated.mp3"
+                communicate = edge_tts.Communicate(translated, voice)
+                await communicate.save(output_file)
+                return output_file
+
+            mp3_file = asyncio.run(generate_voice())
+
+            with open(mp3_file, "rb") as f:
+                audio_bytes_output = f.read()
+
+            st.audio(audio_bytes_output)
+
+            st.download_button(
+                "⬇ Download MP3",
+                audio_bytes_output,
+                file_name="rvoice_translation.mp3",
+                mime="audio/mpeg"
             )
 
-            await communicate.save(output_file)
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
-            return output_file
-
-        mp3_file = asyncio.run(
-            generate_voice()
-        )
-
-        st.subheader("🔊 Output Voice")
-
-        with open(mp3_file, "rb") as audio_file:
-            audio_bytes_output = audio_file.read()
-
-        st.audio(audio_bytes_output)
-
-        st.download_button(
-            label="⬇ Download MP3",
-            data=audio_bytes_output,
-            file_name="rvoice_translation.mp3",
-            mime="audio/mpeg"
-        )
-
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
-
-    finally:
-
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
+        finally:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
 
 
 # -----------------------
