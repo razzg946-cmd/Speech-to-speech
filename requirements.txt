@@ -1,6 +1,6 @@
-streamlit
-deep-translator
-edge-tts
-SpeechRecognition
-audio-recorder-streamlit
-pydub
+streamlit==1.46.1
+deep-translator==1.11.4
+edge-tts==7.2.3
+SpeechRecognition==3.14.3
+audio-recorder-streamlit==0.0.10
+pydub==0.25.1
