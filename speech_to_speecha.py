@@ -108,7 +108,7 @@ sample_rate=44100
 
 if audio_bytes:
 
-```
+
 st.audio(audio_bytes)
 
 st.info("Voice recorded successfully. Click the button below.")
@@ -199,7 +199,7 @@ if st.button("▶ Convert & Translate"):
 
         if os.path.exists(audio_path):
             os.remove(audio_path)
-```
+
 
 # -----------------------
 
