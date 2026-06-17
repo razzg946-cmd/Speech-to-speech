@@ -5,32 +5,33 @@ import speech_recognition as sr
 import edge_tts
 import asyncio
 from io import BytesIO
+from langdetect import detect
 
-st.set_page_config(page_title="Rvoice", page_icon="🎙️")
+st.set_page_config(page_title="Rvoice PRO", page_icon="🎙️")
 
-st.title("🎙️ RVOICE - Live Voice to Voice")
+st.title("🎙️ RVOICE PRO - AI Voice to Voice")
 
 # ---------------- LANGUAGE ----------------
 lang_map = {
-    "English": "en",
-    "Hindi": "hi",
-    "Tamil": "ta",
-    "Telugu": "te",
-    "Bengali": "bn",
-    "Marathi": "mr",
-    "Gujarati": "gu",
-    "Kannada": "kn",
-    "Malayalam": "ml",
-    "Punjabi": "pa",
-    "Urdu": "ur"
+    "en": "English",
+    "hi": "Hindi",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "bn": "Bengali",
+    "mr": "Marathi",
+    "gu": "Gujarati",
+    "kn": "Kannada",
+    "ml": "Malayalam",
+    "pa": "Punjabi",
+    "ur": "Urdu"
 }
 
-input_lang = st.selectbox("Input Language Select", list(lang_map.keys()))
-output_lang = st.selectbox("Output Language Select", list(lang_map.keys()))
+# reverse map
+rev_map = {v: k for k, v in lang_map.items()}
 
-# ---------------- MIC RECORD ----------------
-st.subheader("🎤 Speak Here (Click to Record)")
-audio = mic_recorder(start_prompt="🎙️ Start Recording", stop_prompt="⏹ Stop Recording")
+# ---------------- MIC ----------------
+st.subheader("🎤 Speak Now")
+audio = mic_recorder(start_prompt="🎙️ Start", stop_prompt="⏹ Stop")
 
 # ---------------- SPEECH TO TEXT ----------------
 def speech_to_text(audio_bytes):
@@ -38,7 +39,7 @@ def speech_to_text(audio_bytes):
     audio_file = sr.AudioFile(audio_bytes)
     with audio_file as source:
         data = r.record(source)
-    return r.recognize_google(data, language=lang_map[input_lang])
+    return r.recognize_google(data)
 
 # ---------------- TEXT TO VOICE ----------------
 async def text_to_voice(text):
@@ -52,30 +53,44 @@ async def text_to_voice(text):
     audio.seek(0)
     return audio
 
-# ---------------- PROCESS BUTTON ----------------
+
+# ---------------- MAIN ----------------
 if audio:
 
-    st.success("Audio captured!")
+    st.success("Audio captured 🎧")
 
     if st.button("▶ Convert & Translate"):
 
-        with st.spinner("Processing..."):
+        with st.spinner("AI Processing..."):
 
-            # Convert voice → text
+            # 1. Speech → Text
             text = speech_to_text(audio["bytes"])
-            st.subheader("Recognized Text")
+            st.subheader("📝 Recognized Text")
             st.write(text)
 
-            # Translate
+            # 2. Auto Detect Language
+            detected_lang = detect(text)
+            st.info(f"Detected Language: {lang_map.get(detected_lang, detected_lang)}")
+
+            # 3. Select output language
+            output_lang = st.selectbox(
+                "Select Output Language",
+                list(lang_map.values())
+            )
+
+            # convert back key
+            target_code = list(lang_map.keys())[list(lang_map.values()).index(output_lang)]
+
+            # 4. Translate
             translated = GoogleTranslator(
-                source=lang_map[input_lang],
-                target=lang_map[output_lang]
+                source=detected_lang,
+                target=target_code
             ).translate(text)
 
-            st.subheader("Translated Text")
+            st.subheader("🔁 Translated Text")
             st.write(translated)
 
-            # Text → Voice
+            # 5. Voice Output
             audio_out = asyncio.run(text_to_voice(translated))
 
         st.subheader("🔊 Output Voice")
@@ -84,10 +99,10 @@ if audio:
         st.download_button(
             "⬇ Download MP3",
             data=audio_out,
-            file_name="rvoice.mp3",
+            file_name="rvoice_pro.mp3",
             mime="audio/mp3"
         )
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
-st.markdown("**RVOICE - Founder Raj Gupta**")
+st.markdown("**RVOICE PRO - Founder Raj Gupta**")
