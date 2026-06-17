@@ -1,180 +1,79 @@
 import streamlit as st
-import speech_recognition as sr
 from deep_translator import GoogleTranslator
-from audio_recorder_streamlit import audio_recorder
+import speech_recognition as sr
 import edge_tts
 import asyncio
-import tempfile
-import os
+from io import BytesIO
 
-# -----------------------
+st.set_page_config(page_title="Rvoice", page_icon="🎙️")
 
-# Page Config
+st.title("🎙️ RVOICE - Voice to Voice")
 
-# -----------------------
-
-st.set_page_config(
-page_title="Rvoice - Voice Translator",
-page_icon="🎙️",
-layout="centered"
-)
-
-# -----------------------
-
-# Header
-
-# -----------------------
-
-st.title("🎙️ Rvoice")
-st.subheader("Voice to Voice Translator")
-
-# -----------------------
-
-# Languages
-
-# -----------------------
-
-languages = {
-"English": "en",
-"Hindi": "hi",
-"Tamil": "ta",
-"Telugu": "te",
-"Malayalam": "ml",
-"Kannada": "kn",
-"Bengali": "bn",
-"Gujarati": "gu",
-"Marathi": "mr"
+# ---------------- LANGUAGE ----------------
+lang_map = {
+    "English": "en",
+    "Hindi": "hi",
+    "Tamil": "ta",
+    "French": "fr"
 }
 
-# -----------------------
+input_lang = st.selectbox("Input Language Select", list(lang_map.keys()))
+output_lang = st.selectbox("Output Language Select", list(lang_map.keys()))
 
-# Language Selection
+# ---------------- AUDIO ----------------
+audio_file = st.file_uploader("Voice Record (Upload Audio)", type=["wav"])
 
-# -----------------------
+# ---------------- SPEECH TO TEXT ----------------
+def speech_to_text(audio):
+    r = sr.Recognizer()
+    with sr.AudioFile(audio) as source:
+        data = r.record(source)
+    return r.recognize_google(data, language=lang_map[input_lang])
 
-source_lang = st.selectbox(
-"Input Language",
-list(languages.keys())
-)
+# ---------------- TEXT TO SPEECH ----------------
+async def text_to_voice(text):
+    communicate = edge_tts.Communicate(text, "en-US-JennyNeural")
+    audio = BytesIO()
 
-target_lang = st.selectbox(
-"Output Language",
-list(languages.keys())
-)
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio.write(chunk["data"])
 
-voice_gender = st.selectbox(
-"Voice",
-["Female", "Male"]
-)
+    audio.seek(0)
+    return audio
 
-# -----------------------
+# ---------------- BUTTON ----------------
+if st.button("▶ Convert & Translate"):
 
-# Voice Mapping
+    if audio_file is None:
+        st.warning("Upload audio first")
+    else:
+        with st.spinner("Processing..."):
 
-# -----------------------
-
-female_voices = {
-"English": "en-US-JennyNeural",
-"Hindi": "hi-IN-SwaraNeural",
-"Tamil": "ta-IN-PallaviNeural",
-"Telugu": "te-IN-ShrutiNeural"
-}
-
-male_voices = {
-"English": "en-US-GuyNeural",
-"Hindi": "hi-IN-MadhurNeural",
-"Tamil": "ta-IN-ValluvarNeural",
-"Telugu": "te-IN-MohanNeural"
-}
-
-# -----------------------
-
-# Record Audio
-
-# -----------------------
-
-st.markdown("### 🎤 Record Voice")
-
-audio_bytes = audio_recorder(
-pause_threshold=2.0,
-sample_rate=44100
-)
-
-# -----------------------
-
-# Process Audio
-
-# -----------------------
-
-if audio_bytes:
-
-    st.audio(audio_bytes)
-
-    if st.button("▶ Convert"):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-            f.write(audio_bytes)
-            audio_path = f.name
-
-        recognizer = sr.Recognizer()
-
-        try:
-            with sr.AudioFile(audio_path) as source:
-                audio_data = recognizer.record(source)
-
-            text = recognizer.recognize_google(
-                audio_data,
-                language=languages[source_lang]
-            )
-
-            st.success("Recognized Text")
+            text = speech_to_text(audio_file)
+            st.subheader("Recognized Text")
             st.write(text)
 
             translated = GoogleTranslator(
-                source="auto",
-                target=languages[target_lang]
+                source=lang_map[input_lang],
+                target=lang_map[output_lang]
             ).translate(text)
 
-            st.success("Translated Text")
+            st.subheader("Translated Text")
             st.write(translated)
 
-            voice = "en-US-JennyNeural" if voice_gender == "Female" else "en-US-GuyNeural"
+            audio_out = asyncio.run(text_to_voice(translated))
 
-            async def generate():
-                file = "translated.mp3"
-                tts = edge_tts.Communicate(translated, voice)
-                await tts.save(file)
-                return file
+        st.subheader("Output Voice")
+        st.audio(audio_out, format="audio/mp3")
 
-            mp3 = asyncio.run(generate())
+        st.download_button(
+            "⬇ Download MP3",
+            data=audio_out,
+            file_name="rvoice.mp3",
+            mime="audio/mp3"
+        )
 
-            with open(mp3, "rb") as f:
-                st.audio(f.read())
-
-            st.download_button(
-                "⬇ Download MP3",
-                open(mp3, "rb"),
-                file_name="rvoice.mp3",
-                mime="audio/mp3"
-            )
-
-        except Exception as e:
-            st.error(e)
-
-        finally:
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
-
-
-# -----------------------
-
-# Footer
-
-# -----------------------
-
+# ---------------- FOOTER ----------------
 st.markdown("---")
-
-st.markdown(
-""" <div style='text-align:center'> <h3>🎙️ Rvoice</h3> <p><b>Founder:</b> Raj Gupta</p> </div>
-""",
-unsafe_allow_html=True
-)
+st.markdown("**RVOICE - Founder Raj Gupta**")
