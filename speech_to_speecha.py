@@ -48,7 +48,7 @@ languages = {
 
 # -----------------------
 
-# Select Language
+# Language Selection
 
 # -----------------------
 
@@ -108,17 +108,20 @@ sample_rate=44100
 
 if audio_bytes:
 
-    st.audio(audio_bytes)
+```
+st.audio(audio_bytes)
 
-    if st.button("▶ Convert & Translate"):
+st.info("Voice recorded successfully. Click the button below.")
 
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=".wav"
-        ) as f:
+if st.button("▶ Convert & Translate"):
 
-            f.write(audio_bytes)
-            audio_path = f.name
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".wav"
+    ) as f:
+
+        f.write(audio_bytes)
+        audio_path = f.name
 
     recognizer = sr.Recognizer()
 
@@ -196,7 +199,7 @@ if audio_bytes:
 
         if os.path.exists(audio_path):
             os.remove(audio_path)
-
+```
 
 # -----------------------
 
@@ -207,7 +210,7 @@ if audio_bytes:
 st.markdown("---")
 
 st.markdown(
-""" <div style='text-align:center'> <h3>🎙️ Rvoice</h3> <p>Founder: Raj Gupta</p> </div>
+""" <div style='text-align:center'> <h3>🎙️ Rvoice</h3> <p><b>Founder:</b> Raj Gupta</p> </div>
 """,
 unsafe_allow_html=True
 )
