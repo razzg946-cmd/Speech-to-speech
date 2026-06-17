@@ -9,22 +9,29 @@ st.set_page_config(page_title="Rvoice", page_icon="🎙️")
 
 st.title("🎙️ RVOICE - Voice to Voice")
 
-# ---------------- LANGUAGE ----------------
+# ---------------- LANGUAGE MAP (INDIA + GLOBAL) ----------------
 lang_map = {
     "English": "en",
     "Hindi": "hi",
     "Tamil": "ta",
+    "Telugu": "te",
+    "Bengali": "bn",
+    "Marathi": "mr",
+    "Gujarati": "gu",
+    "Kannada": "kn",
+    "Malayalam": "ml",
+    "Punjabi": "pa",
+    "Urdu": "ur",
     "French": "fr"
 }
 
+# ---------------- LANGUAGE SELECT ----------------
 input_lang = st.selectbox("Input Language Select", list(lang_map.keys()))
 output_lang = st.selectbox("Output Language Select", list(lang_map.keys()))
 
-# ---------------- AUDIO ----------------
+# ---------------- AUDIO UPLOAD ----------------
 audio_file = st.file_uploader("Voice Record (Upload Audio)", type=["wav"])
 
-# ---------------- BUTTON ----------------
-if st.button("▶ Convert & Translate"):
 
 # ---------------- SPEECH TO TEXT ----------------
 def speech_to_text(audio):
@@ -33,7 +40,8 @@ def speech_to_text(audio):
         data = r.record(source)
     return r.recognize_google(data, language=lang_map[input_lang])
 
-# ---------------- TEXT TO SPEECH ----------------
+
+# ---------------- TEXT TO VOICE ----------------
 async def text_to_voice(text):
     communicate = edge_tts.Communicate(text, "en-US-JennyNeural")
     audio = BytesIO()
@@ -45,18 +53,20 @@ async def text_to_voice(text):
     audio.seek(0)
     return audio
 
-# ---------------- BUTTON ----------------
-if st.button("▶ Convert & Translate"):
 
-    if audio_file is None:
-        st.warning("Upload audio first")
-    else:
+# ---------------- PROCESS ----------------
+if audio_file is not None:
+
+    if st.button("▶ Convert & Translate"):
+
         with st.spinner("Processing..."):
 
+            # Speech to Text
             text = speech_to_text(audio_file)
             st.subheader("Recognized Text")
             st.write(text)
 
+            # Translate
             translated = GoogleTranslator(
                 source=lang_map[input_lang],
                 target=lang_map[output_lang]
@@ -65,6 +75,7 @@ if st.button("▶ Convert & Translate"):
             st.subheader("Translated Text")
             st.write(translated)
 
+            # Text to Voice
             audio_out = asyncio.run(text_to_voice(translated))
 
         st.subheader("Output Voice")
@@ -76,6 +87,9 @@ if st.button("▶ Convert & Translate"):
             file_name="rvoice.mp3",
             mime="audio/mp3"
         )
+
+else:
+    st.info("⬆ Please upload voice first")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
